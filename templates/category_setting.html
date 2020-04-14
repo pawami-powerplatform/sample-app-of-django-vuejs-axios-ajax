@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Category Setting{% endblock title %}
+{% block header %}
+    <h1>Category Setting</h1>
+    {% if user.is_authenticated %}
+        <p>{{ user.get_username }} is logged in</p>
+    {% endif %}
+
+    <!-- message -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success fade show" role="alert">
+                <button class="close" data-dismiss="alert">
+                    <small><sup>x</sup></small>
+                </button>
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+{% endblock header %}
+{% block content %}
+
+<div style="display:inline-flex">
+    <!-- Create Category Form -->
+    <div class="search_form" style="display:inline-flex">
+    <form class="form-inline my-2 my-lg-0" method="POST" action="{% url 'create_category' %}">
+        {% csrf_token %}
+        <input class="form-control mr-sm-2" type="search" placeholder="Input category" aria-label="Search" name="category_name" autocomplete="off">
+        <button class="btn btn-outline-secondary my-2 my-sm-0" type="submit">Create</button>
+    </form>
+    </div>
+</div>
+<hr>
+    <!-- Category Table -->
+    <p>Category Table</p>
+    {% if categories %}
+        <table class="table table-bordered">
+            <tr class="table-primary">
+                <th style="text-align: center;">Category</th>
+                <th style="text-align: center;">Delete</th>
+            </tr>
+            {% for i in categories %}
+                <tr class="table-info">
+                    <td id="a-{{ i.id }}" style="text-align: center;"><div class="bg-light rounded">{{ i.category_name }}</div></td>
+                    <td id="c-{{ i.id }}" style="text-align: center;">
+                        <button type="button" class="bg-light rounded"><a href="{% url 'delete_category' i.id %}"><span class="fa fa-pencil">×</span></a></button>
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+{% endblock content %}

@@ -1,0 +1,6 @@
+# Django #
+__pycache__
+
+# If you are using PyCharm #
+.idea
+venv

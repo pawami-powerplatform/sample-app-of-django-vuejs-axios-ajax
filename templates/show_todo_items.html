@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Todo List{% endblock %}
+{% block header %}
+    <h1 xmlns:v-bind="http://www.w3.org/1999/xhtml">Todo List</h1>
+    {% if user.is_authenticated %}
+        <p>{{ user.get_username }} is logged in</p>
+    {% endif %}
+{% endblock header %}
+{% block content %}
+
+    <div id="todo_list">
+<!-- Create Todo Form -->
+        <form @submit.prevent="addItem">
+            <label for="item">Item:</label>
+            <input type="text" id="item" v-model="new_item" autocomplete="off">
+            <label for="item_date">Date:</label>
+            <input type="date" id="item_date" v-model="its_date">
+            <button type="submit">Add</button>
+        </form>
+        <hr>
+<!-- Todo Table -->
+        <table class="table table-bordered">
+            <thead>
+            <tr class="table-primary">
+                <th style="text-align: center;">レ</th>
+                <th style="text-align: center;">Item</th>
+                <th style="text-align: center;">Date</th>
+                <th style="text-align: center;">Category</th>
+                <th style="text-align: center;">Edit</th>
+                <th style="text-align: center;">Delete</th>
+            </tr>
+            </thead>
+            <tbody v-cloak v-for="(item, index) in items">
+            <tr class="table-secondary" style="text-decoration: line-through" v-if="item.completed">
+                <td @click="changeStatus(item)"><img src="/media/check.png" style="max-height:20px"/></td>
+                <td v-text="item.item"></td>
+                <td v-text="item.item_date"></td>
+                <td v-if="item.category_name" v-text="item.category_name"></td>
+                <td v-else>-</td>
+                <td>-</td>
+                <td @click="deleteItem(item, index)"><img src="/media/delete.png" style="max-height:20px"/></td>
+            </tr>
+            <tr class="table-info" v-else-if="!item.edit">
+                <td @click="changeStatus(item)"><img src="/media/check.png" style="max-height:20px"/></td>
+                <td v-text="item.item"></td>
+                <td v-text="item.item_date"></td>
+                <td v-if="item.category_name" v-text="item.category_name"></td>
+                <td v-else>-</td>
+                <td @click="item.edit = true"><img src="/media/edit.png" style="max-height:20px"/></td>
+                <td @click="deleteItem(item, index)"><img src="/media/delete.png" style="max-height:20px"/></td>
+            </tr>
+            <tr class="table-info" v-else>
+                <td><img src="/media/check.png" style="max-height:20px"/></td>
+                <td><input type="text" v-model="item.item"></td>
+                <td><input type="date" v-model="item.item_date"></td>
+                <td>
+                    <div class="form-group">
+                        <select class="form-control" id="exampleFormControlSelect1" v-model="item.category_name">
+                            <option v-for="category in categories" :value="category.category_name">[[ category.category_name ]]</option>
+                        </select>
+                    </div>
+                </td>
+                <td @click="item.edit = false; edit(item)"><img src="/media/edit.png" style="max-height:20px"/></td>
+                <td @click="deleteItem(item, index)"><img src="/media/delete.png" style="max-height:20px"/></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        Vue.directive('focus', {
+            inserted: function (el) {
+                el.focus()
+            }
+        })
+        var vm = new Vue({
+            delimiters: ['[[', ']]'],
+            el: '#todo_list',
+            data: {
+                items: [],
+                categories: [],
+                new_item: "",
+                its_date: moment(new Date().toLocaleString()).format('YYYY-MM-DD'),
+            },
+            mounted: function () {
+                axios.get(`{% url "get_item" %}`)
+                    .then(function (response) {
+                        for (var d in response.data.categories){
+                            var category = response.data.categories[d];
+                            vm.categories.push(category);
+                        }
+                        for (var d in response.data.items) {
+                            var item = response.data.items[d];
+                            item.item_date = moment(new Date(item.item_date)).format('YYYY-MM-DD');
+                            item['edit'] = false;
+
+                            if (item.category_id){
+                                category_name = vm.categories.filter(function (i) {
+                                    return i.id === item.category_id;
+                                });
+                                item['category_name'] = category_name[0].category_name;
+                            } else {
+                                item['category_name'] = null;
+                            }
+                             vm.items.push(item);
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+                    .then(function () {
+                    });
+            },
+            methods: {
+                changeStatus: function (item) {
+                    item.completed = !item.completed;
+                    this.updateDB(item)
+                },
+                addItem: function () {
+                    if (this.new_item && this.its_date) {
+                        item = {
+                            "item": this.new_item,
+                            "item_date": moment(new Date(this.its_date)).format('YYYY-MM-DD'),
+                            "completed": false
+                        };
+                        this.addDB(item);
+                    }
+                    this.new_item = "";
+                },
+                edit: function (item) {
+                    if (item.category_name) {
+                        category_obj = this.categories.filter(function (element){
+                            return element.category_name === item.category_name;
+                        });
+                        item.category_id = category_obj[0].id;
+                    }
+                    this.updateDB(item)
+                },
+                 deleteItem: function(item, index){
+                   this.items.splice(index, 1);
+                   var delete_id = item.id;
+                   this.deleteDB(delete_id);
+                 },
+                addDB: function (item) {
+                    csrftoken = Cookies.get('csrftoken');
+                    headers = {'X-CSRFToken': csrftoken};
+                    data = {
+                        "item": item.item,
+                        "item_date": moment(new Date(item.item_date)).format('YYYY-MM-DD'),
+                        "completed": item.completed,
+                    };
+                    axios.post('{% url 'post_update_item' %}', data, {headers: headers})
+                        .then(function (response) {
+                            response.data['edit'] = false;
+                            vm.items.push(response.data);
+                            console.log(response);
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        });
+                },
+                updateDB: function (item) {
+                    csrftoken = Cookies.get('csrftoken');
+                    headers = {'X-CSRFToken': csrftoken};
+                    data = {
+                        "item_id": item.id,
+                        "item": item.item,
+                        "item_date": moment(new Date(item.item_date)).format('YYYY-MM-DD'),
+                        "completed": item.completed,
+                        "category_id": item.category_id,
+                    };
+                    axios.post('{% url 'post_update_item' %}', data, {headers: headers})
+                        .then(function (response) {
+                            console.log(response);
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        });
+                },
+                deleteDB: function (delete_id) {
+                    csrftoken = Cookies.get('csrftoken');
+                    headers = {'X-CSRFToken': csrftoken};
+                    data = {
+                        "item_id": delete_id
+                    };
+                    axios.post('{% url 'post_delete_item' %}', data, {headers: headers})
+                        .then(function (response) {
+                            console.log(response);
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        });
+                }
+            }
+        })
+    </script>
+{% endblock content %}
