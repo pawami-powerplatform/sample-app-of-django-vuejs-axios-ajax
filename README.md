@@ -3,8 +3,8 @@
 ## Overview
 This is a Django axios ajax crud app by vue.js.
  
-
 ## Demo
+![ajax_demo](https://user-images.githubusercontent.com/59159469/79207294-82dfbe80-7e7b-11ea-8d58-a7467b21c405.gif)
 
 ## Install
 1. $ pip install -r requirements.txt
