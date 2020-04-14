@@ -37,7 +37,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'widget_tweaks',
     'ajaxapp'
 ]
 
@@ -121,5 +120,4 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# ログイン後のリダイレクト
 LOGIN_REDIRECT_URL = '/todo/'
